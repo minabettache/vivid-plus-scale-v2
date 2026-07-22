@@ -11,14 +11,13 @@ type ScannedMember = {
   membership_level: string | null;
   points: number | null;
   qr_code: string | null;
+  member_id?: string | null;
   is_active: boolean | null;
 };
 
 function extractMemberCode(scannedValue: string) {
   const value = scannedValue.trim();
 
-  // Handles a QR containing:
-  // https://your-site.vercel.app/scanner?code=MEMBER-CODE
   try {
     const url = new URL(value);
     const code = url.searchParams.get("code");
@@ -27,16 +26,13 @@ function extractMemberCode(scannedValue: string) {
       return code.trim();
     }
   } catch {
-    // The scanned value is not a URL.
+    // Not a URL.
   }
 
-  // Handles older QR values such as:
-  // VIVID-MEMBER:4078684229
   if (value.startsWith("VIVID-MEMBER:")) {
     return value.replace("VIVID-MEMBER:", "").trim();
   }
 
-  // Handles a raw member code.
   return value;
 }
 
@@ -68,9 +64,9 @@ export default function ScannerPage() {
     const { data, error } = await supabase
       .from("members")
       .select(
-        "id, full_name, phone, email, membership_level, points, qr_code, is_active"
+        "id, full_name, phone, email, membership_level, points, qr_code, member_id, is_active"
       )
-      .eq("qr_code", memberCode)
+      .or(`qr_code.eq.${memberCode},member_id.eq.${memberCode}`)
       .maybeSingle();
 
     if (error) {
@@ -87,11 +83,13 @@ export default function ScannerPage() {
     }
 
     setMember(data);
+
     setMessage(
       data.is_active === false
         ? "Member found, but the membership is inactive."
         : "Member verified."
     );
+
     setSearching(false);
 
     if (scannerRef.current) {
@@ -106,8 +104,6 @@ export default function ScannerPage() {
   useEffect(() => {
     let isMounted = true;
 
-    // Automatically reads:
-    // /scanner?code=MEMBER-CODE
     const params = new URLSearchParams(window.location.search);
     const codeFromUrl = params.get("code");
 
@@ -145,7 +141,7 @@ export default function ScannerPage() {
             await findMember(decodedText);
           },
           () => {
-            // Normal camera frames without a QR code are ignored.
+            // Ignore frames without a QR code.
           }
         );
       } catch (error) {
@@ -197,7 +193,7 @@ export default function ScannerPage() {
         {message}
       </p>
 
-      {!member && (
+      {!member && !searching && (
         <div
           id="qr-reader"
           style={{
@@ -208,6 +204,17 @@ export default function ScannerPage() {
             overflow: "hidden",
           }}
         />
+      )}
+
+      {searching && (
+        <p
+          style={{
+            color: "#f5a623",
+            fontWeight: 700,
+          }}
+        >
+          Searching member database...
+        </p>
       )}
 
       {member && (
@@ -273,12 +280,9 @@ export default function ScannerPage() {
             <strong>Email:</strong> {member.email || "Not provided"}
           </p>
 
-          <p
-            style={{
-              wordBreak: "break-word",
-            }}
-          >
-            <strong>Member code:</strong> {member.qr_code}
+          <p style={{ wordBreak: "break-word" }}>
+            <strong>Member code:</strong>{" "}
+            {member.qr_code || member.member_id || "Not available"}
           </p>
 
           <button
