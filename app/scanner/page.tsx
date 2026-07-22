@@ -50,7 +50,8 @@ function ScannerContent() {
   const scannerRef = useRef<any>(null);
   const lookupStartedRef = useRef(false);
 
-  const codeFromUrl = searchParams.get("code")?.trim() || "";
+  const codeFromUrl = searchParams.get("code")?.trim() || "";console.log("URL:", window.location.href);
+console.log("codeFromUrl:", codeFromUrl);
 
   const [member, setMember] = useState<ScannedMember | null>(null);
   const [message, setMessage] = useState(
