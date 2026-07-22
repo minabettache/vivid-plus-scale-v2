@@ -35,7 +35,8 @@ export default function DigitalCardPage() {
     );
   }
 
-  const qrValue = member.memberId;
+  // ✅ THIS IS THE FIX
+  const qrValue = `VIVID-MEMBER:${member.memberId}`;
 
   const qrImageUrl =
     "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
@@ -86,13 +87,15 @@ export default function DigitalCardPage() {
             marginBottom: "8px",
           }}
         >
-          VIVID+
+          VIVID+ DIGITAL CARD
         </p>
 
-        <h1 style={{ margin: "0 0 6px" }}>{member.name}</h1>
+        <h1 style={{ margin: "0 0 6px" }}>
+          {member.name}
+        </h1>
 
         <p style={{ color: "#bbbbbb", marginTop: 0 }}>
-          {member.membershipLevel} Member
+          {member.membershipLevel} Member • {member.points} points
         </p>
 
         <div
@@ -106,39 +109,40 @@ export default function DigitalCardPage() {
         >
           <img
             src={qrImageUrl}
-            alt="VIVID+ membership QR code"
+            alt="VIVID+ Membership QR"
             width={260}
             height={260}
             style={{ display: "block" }}
           />
         </div>
 
-        <h2 style={{ color: "#f5a623", marginBottom: "6px" }}>
-          {member.points} points
-        </h2>
-
-        <p style={{ color: "#bbbbbb", marginBottom: "8px" }}>
-          Member ID
-        </p>
-
-        <p
+        <h2
           style={{
-            fontWeight: "bold",
-            letterSpacing: "1px",
-            wordBreak: "break-word",
+            color: "#f5a623",
+            marginBottom: "8px",
           }}
         >
           {member.memberId}
+        </h2>
+
+        <p
+          style={{
+            color: "#999",
+            fontSize: "14px",
+            marginBottom: "10px",
+          }}
+        >
+          Present this QR code to VIVID+ staff.
         </p>
 
         <p
           style={{
-            color: "#999999",
-            fontSize: "13px",
-            marginTop: "22px",
+            color: "#777",
+            fontSize: "12px",
+            wordBreak: "break-all",
           }}
         >
-          Present this QR code to VIVID+ staff.
+          {qrValue}
         </p>
       </section>
     </main>
