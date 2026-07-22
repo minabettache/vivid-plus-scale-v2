@@ -86,10 +86,12 @@ export default function HomePage() {
 
   const points = member.points ?? 640;
 
-  const qrValue =
+  const memberCode =
+    member.qr_code?.trim() ||
     member.memberId?.trim() ||
-    member.phone?.trim() ||
     `VIVID-${Date.now()}`;
+
+  const qrValue = `VIVID-MEMBER:${memberCode}`;
 
   const qrImageUrl =
     'https://api.qrserver.com/v1/create-qr-code/' +
@@ -119,7 +121,8 @@ export default function HomePage() {
 
           <div className="status-pill">
             <Sparkles size={14} />
-            Gold status active · Member since {memberSince}
+            {member.membershipLevel || 'Gold'} status active · Member since{' '}
+            {memberSince}
           </div>
 
           <QuickActions
@@ -253,9 +256,10 @@ export default function HomePage() {
                 margin: '18px 0 4px',
                 color: '#f5a623',
                 fontWeight: 800,
+                wordBreak: 'break-word',
               }}
             >
-              {qrValue}
+              {memberCode}
             </p>
 
             <p
