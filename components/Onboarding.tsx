@@ -1,18 +1,29 @@
 'use client';
 
-import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
 import { useState } from 'react';
+
 import { interests } from '@/lib/data';
 import { createMemberId } from '@/lib/member';
 import type { Interest, Member } from '@/lib/types';
 import { BrandLogo } from './BrandLogo';
 
-export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
+export function Onboarding({
+  onJoin,
+}: {
+  onJoin: (member: Member) => void;
+}) {
   const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
     phone: '',
+    email: '',
     birthday: '',
     interests: [] as Interest[],
   });
@@ -29,15 +40,20 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const memberId = createMemberId(form.name, form.phone);
+
     const member: Member = {
-      memberId: createMemberId(form.name, form.phone),
-      name: form.name,
-      phone: form.phone,
+      memberId,
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
       birthday: form.birthday,
       interests: form.interests,
       joinedAt: new Date().toISOString(),
       points: 100,
       membershipLevel: 'Gold',
+      qr_code: memberId,
+      is_active: true,
     };
 
     onJoin(member);
@@ -51,8 +67,10 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
       <section className="welcome-card">
         <div className="welcome-topline">
           <BrandLogo />
+
           <span>
-            <Sparkles size={14} /> Orlando&apos;s premium rewards experience
+            <Sparkles size={14} />
+            Orlando&apos;s premium rewards experience
           </span>
         </div>
 
@@ -72,28 +90,34 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
 
             <div className="benefit-row">
               <span>
-                <CheckCircle2 size={16} /> 100 welcome points
+                <CheckCircle2 size={16} />
+                100 welcome points
               </span>
 
               <span>
-                <CheckCircle2 size={16} /> Member-only offers
+                <CheckCircle2 size={16} />
+                Member-only offers
               </span>
 
               <span>
-                <CheckCircle2 size={16} /> VIP event access
+                <CheckCircle2 size={16} />
+                VIP event access
               </span>
             </div>
 
             <button
+              type="button"
               className="primary large"
               onClick={() => setShowForm(true)}
             >
-              Become a member <ArrowRight size={18} />
+              Become a member
+              <ArrowRight size={18} />
             </button>
 
             <p className="fine-print">
-              <ShieldCheck size={14} /> Free to join. Age verification may be
-              required for certain offers.
+              <ShieldCheck size={14} />
+              Free to join. Age verification may be required for certain
+              offers.
             </p>
           </div>
         ) : (
@@ -118,8 +142,11 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
               <input
                 required
                 value={form.name}
-                onChange={(e) =>
-                  setForm({ ...form, name: e.target.value })
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    name: event.target.value,
+                  })
                 }
                 placeholder="Ali Abide"
               />
@@ -131,10 +158,29 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
                 required
                 type="tel"
                 value={form.phone}
-                onChange={(e) =>
-                  setForm({ ...form, phone: e.target.value })
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    phone: event.target.value,
+                  })
                 }
                 placeholder="(407) 555-0199"
+              />
+            </label>
+
+            <label>
+              Email address
+              <input
+                required
+                type="email"
+                value={form.email}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    email: event.target.value,
+                  })
+                }
+                placeholder="you@example.com"
               />
             </label>
 
@@ -144,8 +190,11 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
                 required
                 type="date"
                 value={form.birthday}
-                onChange={(e) =>
-                  setForm({ ...form, birthday: e.target.value })
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    birthday: event.target.value,
+                  })
                 }
               />
             </label>
@@ -174,11 +223,12 @@ export function Onboarding({ onJoin }: { onJoin: (member: Member) => void }) {
             <label className="consent">
               <input required type="checkbox" />
               I agree to receive VIVID+ membership updates and promotional
-              messages.
+              messages. Message and data rates may apply.
             </label>
 
             <button className="primary large" type="submit">
-              Join free — get 100 points <ArrowRight size={18} />
+              Join free — get 100 points
+              <ArrowRight size={18} />
             </button>
           </form>
         )}
