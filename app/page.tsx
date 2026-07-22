@@ -89,13 +89,27 @@ export default function HomePage() {
   const memberCode =
     member.qr_code?.trim() ||
     member.memberId?.trim() ||
-    `VIVID-${Date.now()}`;
+    'VIVID-UNKNOWN-MEMBER';
 
-  const qrValue = `VIVID-MEMBER:${memberCode}`;
+  /*
+   * Important:
+   * The QR no longer contains only the telephone number.
+   * It contains structured VIVID+ membership text.
+   */
+  const qrValue = JSON.stringify({
+    type: 'VIVID_MEMBER',
+    code: memberCode,
+  });
 
+  /*
+   * version=3 forces the browser and QR service to use
+   * a new QR image instead of the older phone-number QR.
+   */
   const qrImageUrl =
     'https://api.qrserver.com/v1/create-qr-code/' +
-    `?size=300x300&data=${encodeURIComponent(qrValue)}`;
+    `?size=300x300&margin=10&format=png&data=${encodeURIComponent(
+      qrValue
+    )}&version=3`;
 
   return (
     <main className="app-shell">
@@ -198,9 +212,9 @@ export default function HomePage() {
                 height: '38px',
                 display: 'grid',
                 placeItems: 'center',
-                border: '1px solid rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
                 borderRadius: '50%',
-                background: 'rgba(255,255,255,0.08)',
+                background: 'rgba(255, 255, 255, 0.08)',
                 color: '#ffffff',
                 cursor: 'pointer',
               }}
@@ -220,11 +234,21 @@ export default function HomePage() {
               VIVID+ DIGITAL CARD
             </p>
 
-            <h2 style={{ margin: '10px 0 4px', fontSize: '28px' }}>
+            <h2
+              style={{
+                margin: '10px 0 4px',
+                fontSize: '28px',
+              }}
+            >
               {member.name || 'VIVID+ Member'}
             </h2>
 
-            <p style={{ margin: '0 0 22px', color: '#bbbbbb' }}>
+            <p
+              style={{
+                margin: '0 0 22px',
+                color: '#bbbbbb',
+              }}
+            >
               {member.membershipLevel || 'Gold'} Member · {points} points
             </p>
 
@@ -259,7 +283,7 @@ export default function HomePage() {
                 wordBreak: 'break-word',
               }}
             >
-              {memberCode}
+              Member code: {memberCode}
             </p>
 
             <p
