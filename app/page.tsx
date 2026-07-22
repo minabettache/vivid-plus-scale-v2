@@ -91,25 +91,15 @@ export default function HomePage() {
     member.memberId?.trim() ||
     'VIVID-UNKNOWN-MEMBER';
 
-  /*
-   * Important:
-   * The QR no longer contains only the telephone number.
-   * It contains structured VIVID+ membership text.
-   */
-  const qrValue = JSON.stringify({
-    type: 'VIVID_MEMBER',
-    code: memberCode,
-  });
+  const qrValue =
+    `https://vivid-plus-scale-v2.vercel.app/scanner?code=` +
+    encodeURIComponent(memberCode);
 
-  /*
-   * version=3 forces the browser and QR service to use
-   * a new QR image instead of the older phone-number QR.
-   */
   const qrImageUrl =
     'https://api.qrserver.com/v1/create-qr-code/' +
     `?size=300x300&margin=10&format=png&data=${encodeURIComponent(
       qrValue
-    )}&version=3`;
+    )}&cache=${Date.now()}`;
 
   return (
     <main className="app-shell">
