@@ -1,34 +1,34 @@
-'use client';
+"use client";
 
-import { Bell, Sparkles, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Bell, Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
   BottomNavigation,
-  type CustomerTab
-} from '@/components/BottomNavigation';
-import { EventsPanel } from '@/components/EventsPanel';
-import { MembershipCard } from '@/components/MembershipCard';
-import { FeaturedOffer } from '@/components/Offers';
-import { Onboarding } from '@/components/Onboarding';
-import { ProfilePanel } from '@/components/ProfilePanel';
-import { QuickActions } from '@/components/QuickActions';
-import { RewardsPanel } from '@/components/RewardsPanel';
+  type CustomerTab,
+} from "@/components/BottomNavigation";
+import { EventsPanel } from "@/components/EventsPanel";
+import { MembershipCard } from "@/components/MembershipCard";
+import { FeaturedOffer } from "@/components/Offers";
+import { Onboarding } from "@/components/Onboarding";
+import { ProfilePanel } from "@/components/ProfilePanel";
+import { QuickActions } from "@/components/QuickActions";
+import { RewardsPanel } from "@/components/RewardsPanel";
 
 import {
   clearMember,
   loadMember,
-  saveMember
-} from '@/lib/member';
+  saveMember,
+} from "@/lib/member";
 
-import type { Member } from '@/lib/types';
+import type { Member } from "@/lib/types";
 
 export default function HomePage() {
   const [member, setMember] = useState<Member | null>(null);
+  const [currentPoints, setCurrentPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const [tab, setTab] = useState<CustomerTab>('home');
-
+  const [tab, setTab] = useState<CustomerTab>("home");
   const [showDigitalCard, setShowDigitalCard] =
     useState(false);
 
@@ -36,10 +36,14 @@ export default function HomePage() {
     async function getMember() {
       try {
         const savedMember = await loadMember();
+
         setMember(savedMember);
+        setCurrentPoints(savedMember?.points ?? 0);
       } catch (error) {
-        console.error('Failed to load member:', error);
+        console.error("Failed to load member:", error);
+
         setMember(null);
+        setCurrentPoints(0);
       } finally {
         setLoading(false);
       }
@@ -51,10 +55,24 @@ export default function HomePage() {
   async function join(newMember: Member) {
     try {
       await saveMember(newMember);
-      setMember(newMember);
-      setTab('home');
+
+      /*
+       * Reload the member from Supabase so we receive
+       * the real database ID and mapped database fields.
+       */
+      const savedMember = await loadMember();
+
+      if (!savedMember) {
+        throw new Error(
+          "Member was created but could not be loaded."
+        );
+      }
+
+      setMember(savedMember);
+      setCurrentPoints(savedMember.points ?? 0);
+      setTab("home");
     } catch (error) {
-      console.error('Failed to save member:', error);
+      console.error("Failed to save member:", error);
     }
   }
 
@@ -62,12 +80,28 @@ export default function HomePage() {
     try {
       await clearMember();
     } catch (error) {
-      console.error('Failed to clear member:', error);
+      console.error("Failed to clear member:", error);
     } finally {
       setShowDigitalCard(false);
       setMember(null);
-      setTab('home');
+      setCurrentPoints(0);
+      setTab("home");
     }
+  }
+
+  function updateMemberPoints(newPoints: number) {
+    setCurrentPoints(newPoints);
+
+    setMember((currentMember) => {
+      if (!currentMember) {
+        return currentMember;
+      }
+
+      return {
+        ...currentMember,
+        points: newPoints,
+      };
+    });
   }
 
   function openDigitalCard() {
@@ -91,25 +125,25 @@ export default function HomePage() {
   }
 
   const firstName =
-    member.name?.trim().split(' ')[0] || 'Member';
+    member.name?.trim().split(" ")[0] || "Member";
 
   const memberSince = member.joinedAt
     ? new Date(member.joinedAt).getFullYear()
     : new Date().getFullYear();
 
-  const points = member.points ?? 640;
+  const points = currentPoints;
 
   const memberCode =
     member.qr_code?.trim() ||
     member.memberId?.trim() ||
-    'VIVID-UNKNOWN-MEMBER';
+    "VIVID-UNKNOWN-MEMBER";
 
   const qrValue =
-    'https://vivid-plus-scale-v2.vercel.app/scanner?code=' +
+    "https://vivid-plus-scale-v2.vercel.app/scanner?code=" +
     encodeURIComponent(memberCode);
 
   const qrImageUrl =
-    'https://api.qrserver.com/v1/create-qr-code/' +
+    "https://api.qrserver.com/v1/create-qr-code/" +
     `?size=300x300&margin=10&format=png&data=${encodeURIComponent(
       qrValue
     )}`;
@@ -135,7 +169,7 @@ export default function HomePage() {
         </button>
       </header>
 
-      {tab === 'home' && (
+      {tab === "home" && (
         <>
           <MembershipCard
             member={member}
@@ -145,26 +179,51 @@ export default function HomePage() {
           <div className="status-pill">
             <Sparkles size={14} />
 
-            {member.membershipLevel || 'Gold'} status
+            {member.membershipLevel || "Gold"} status
             active · Member since {memberSince}
           </div>
 
           <QuickActions
             onCard={openDigitalCard}
-            onEvents={() => setTab('events')}
+            onEvents={() => setTab("events")}
           />
 
           <FeaturedOffer />
         </>
       )}
 
-      {tab === 'events' && <EventsPanel />}
+      {tab === "events" && <EventsPanel />}
 
-      {tab === 'rewards' && (
-        <RewardsPanel points={points} />
-      )}
+      {tab === "rewards" &&
+        (member.id ? (
+          <RewardsPanel
+            memberId={member.id}
+            points={points}
+            onPointsChange={updateMemberPoints}
+          />
+        ) : (
+          <section className="section page-section">
+            <div className="section-head">
+              <div>
+                <p className="eyebrow small">
+                  REDEEM YOUR POINTS
+                </p>
 
-      {tab === 'card' && (
+                <h3>Reward Store</h3>
+              </div>
+
+              <span>{points} Points</span>
+            </div>
+
+            <p>
+              Your member account could not be identified.
+              Please refresh the app or ask VIVID+ staff for
+              assistance.
+            </p>
+          </section>
+        ))}
+
+      {tab === "card" && (
         <section className="section page-section">
           <div className="section-head">
             <div>
@@ -193,7 +252,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {tab === 'profile' && (
+      {tab === "profile" && (
         <ProfilePanel
           member={member}
           onSignOut={signOut}
@@ -201,7 +260,7 @@ export default function HomePage() {
       )}
 
       <footer>
-        <span>VIVID+</span>{' '}
+        <span>VIVID+</span>{" "}
         Offers are subject to eligibility, age
         verification, and store terms.
       </footer>
@@ -216,15 +275,15 @@ export default function HomePage() {
           role="presentation"
           onClick={closeDigitalCard}
           style={{
-            position: 'fixed',
+            position: "fixed",
             inset: 0,
             zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-            background: 'rgba(0, 0, 0, 0.88)',
-            backdropFilter: 'blur(10px)'
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            background: "rgba(0, 0, 0, 0.88)",
+            backdropFilter: "blur(10px)",
           }}
         >
           <section
@@ -235,18 +294,18 @@ export default function HomePage() {
               event.stopPropagation()
             }
             style={{
-              position: 'relative',
-              width: '100%',
-              maxWidth: '390px',
-              padding: '28px',
-              border: '1px solid #f5a623',
-              borderRadius: '26px',
+              position: "relative",
+              width: "100%",
+              maxWidth: "390px",
+              padding: "28px",
+              border: "1px solid #f5a623",
+              borderRadius: "26px",
               background:
-                'linear-gradient(145deg, #241508 0%, #111111 55%, #080808 100%)',
+                "linear-gradient(145deg, #241508 0%, #111111 55%, #080808 100%)",
               boxShadow:
-                '0 24px 80px rgba(245, 166, 35, 0.25)',
-              color: '#ffffff',
-              textAlign: 'center'
+                "0 24px 80px rgba(245, 166, 35, 0.25)",
+              color: "#ffffff",
+              textAlign: "center",
             }}
           >
             <button
@@ -254,20 +313,20 @@ export default function HomePage() {
               aria-label="Close digital card"
               onClick={closeDigitalCard}
               style={{
-                position: 'absolute',
-                top: '14px',
-                right: '14px',
-                width: '38px',
-                height: '38px',
-                display: 'grid',
-                placeItems: 'center',
+                position: "absolute",
+                top: "14px",
+                right: "14px",
+                width: "38px",
+                height: "38px",
+                display: "grid",
+                placeItems: "center",
                 border:
-                  '1px solid rgba(255, 255, 255, 0.15)',
-                borderRadius: '50%',
+                  "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "50%",
                 background:
-                  'rgba(255, 255, 255, 0.08)',
-                color: '#ffffff',
-                cursor: 'pointer'
+                  "rgba(255, 255, 255, 0.08)",
+                color: "#ffffff",
+                cursor: "pointer",
               }}
             >
               <X size={20} />
@@ -276,10 +335,10 @@ export default function HomePage() {
             <p
               style={{
                 margin: 0,
-                color: '#f5a623',
-                fontSize: '13px',
+                color: "#f5a623",
+                fontSize: "13px",
                 fontWeight: 800,
-                letterSpacing: '0.12em'
+                letterSpacing: "0.12em",
               }}
             >
               VIVID+ DIGITAL CARD
@@ -287,55 +346,55 @@ export default function HomePage() {
 
             <h2
               style={{
-                margin: '10px 0 4px',
-                fontSize: '28px'
+                margin: "10px 0 4px",
+                fontSize: "28px",
               }}
             >
-              {member.name || 'VIVID+ Member'}
+              {member.name || "VIVID+ Member"}
             </h2>
 
             <p
               style={{
-                margin: '0 0 22px',
-                color: '#bbbbbb'
+                margin: "0 0 22px",
+                color: "#bbbbbb",
               }}
             >
-              {member.membershipLevel || 'Gold'} Member
-              {' · '}
+              {member.membershipLevel || "Gold"} Member
+              {" · "}
               {points} points
             </p>
 
             <div
               style={{
-                width: '260px',
-                maxWidth: '100%',
-                margin: '0 auto',
-                padding: '14px',
-                borderRadius: '20px',
-                background: '#ffffff'
+                width: "260px",
+                maxWidth: "100%",
+                margin: "0 auto",
+                padding: "14px",
+                borderRadius: "20px",
+                background: "#ffffff",
               }}
             >
               <img
                 src={qrImageUrl}
                 alt={`VIVID+ QR code for ${
-                  member.name || 'member'
+                  member.name || "member"
                 }`}
                 width={232}
                 height={232}
                 style={{
-                  display: 'block',
-                  width: '100%',
-                  height: 'auto'
+                  display: "block",
+                  width: "100%",
+                  height: "auto",
                 }}
               />
             </div>
 
             <p
               style={{
-                margin: '18px 0 4px',
-                color: '#f5a623',
+                margin: "18px 0 4px",
+                color: "#f5a623",
                 fontWeight: 800,
-                wordBreak: 'break-word'
+                wordBreak: "break-word",
               }}
             >
               Member code: {memberCode}
@@ -344,9 +403,9 @@ export default function HomePage() {
             <p
               style={{
                 margin: 0,
-                color: '#999999',
-                fontSize: '13px',
-                lineHeight: 1.5
+                color: "#999999",
+                fontSize: "13px",
+                lineHeight: 1.5,
               }}
             >
               Present this QR code to VIVID+ staff.

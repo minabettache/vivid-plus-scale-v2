@@ -6,17 +6,19 @@ export type Interest =
   | "Retail & Merch";
 
 export type Member = {
+  id?: number;
+
   name: string;
   phone: string;
   email: string;
   birthday: string;
   interests: Interest[];
+
   memberId: string;
   joinedAt: string;
   membershipLevel: string;
   points: number;
 
-  // Supabase fields
   qr_code?: string;
   is_active?: boolean;
 };
