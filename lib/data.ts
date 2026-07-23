@@ -1,29 +1,48 @@
-import { PartyPopper, Sparkles, Ticket, Utensils } from "lucide-react";
+import {
+  Armchair,
+  CupSoda,
+  Crown,
+  RefreshCw,
+  Sparkles,
+  Ticket,
+} from "lucide-react";
 
 export const rewards = [
   {
     points: 250,
-    title: "Free game credit",
-    subtitle: "One complimentary game credit",
-    icon: Ticket,
+    title: "Free non-alcoholic drink",
+    subtitle: "Choose one eligible VIVID lounge drink",
+    icon: CupSoda,
   },
   {
-    points: 500,
-    title: "$5 café credit",
-    subtitle: "Use toward eligible food or café items",
-    icon: Utensils,
+    points: 400,
+    title: "Hookah refill",
+    subtitle: "One eligible hookah flavor refill",
+    icon: RefreshCw,
   },
   {
-    points: 800,
-    title: "Lounge upgrade",
-    subtitle: "Upgrade an eligible lounge experience",
+    points: 650,
+    title: "VIP seating upgrade",
+    subtitle: "Upgrade to eligible VIP lounge seating",
+    icon: Armchair,
+  },
+  {
+    points: 900,
+    title: "Free hookah",
+    subtitle: "One eligible classic lounge hookah",
     icon: Sparkles,
   },
   {
     points: 1200,
     title: "Premium event entry",
-    subtitle: "Admission to one eligible Vivid event",
-    icon: PartyPopper,
+    subtitle: "Admission to one eligible VIVID event",
+    icon: Ticket,
+  },
+  {
+    points: 1800,
+    title: "VIP lounge experience",
+    subtitle: "Exclusive VIVID member lounge experience",
+    icon: Crown,
   },
 ];
 
