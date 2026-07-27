@@ -1,0 +1,29 @@
+{
+  "name": "vivid-plus-scale-v2",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.110.8",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@zxing/browser": "^0.2.1",
+    "lucide-react": "^0.468.0",
+    "next": "16.2.10",
+    "postcss": "^8.5.23",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "recharts": "^3.10.1",
+    "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "typescript": "^5.9.3"
+  }
+}

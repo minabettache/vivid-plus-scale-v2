@@ -1,0 +1,31 @@
+import {
+  BadgeDollarSign,
+  Boxes,
+  BrainCircuit,
+  ChartNoAxesCombined,
+  ClipboardList,
+  Gauge,
+  ScanLine,
+  Settings,
+  ShoppingCart,
+  Tags,
+  Truck,
+  Users,
+  WalletCards,
+} from "lucide-react";
+
+export const navigation = [
+  { label: "Dashboard", href: "/dashboard", icon: Gauge },
+  { label: "POS", href: "/pos", icon: ShoppingCart },
+  { label: "Inventory", href: "/inventory", icon: Boxes },
+  { label: "Products", href: "/products", icon: Tags },
+  { label: "Suppliers", href: "/suppliers", icon: Truck },
+  { label: "Purchase Orders", href: "/purchase-orders", icon: ClipboardList },
+  { label: "AI Invoice Scanner", href: "/invoice-scanner", icon: ScanLine },
+  { label: "Customers", href: "/customers", icon: Users },
+  { label: "Loyalty", href: "/loyalty", icon: WalletCards },
+  { label: "Pricing", href: "/pricing", icon: BadgeDollarSign },
+  { label: "Reports", href: "/reports", icon: ChartNoAxesCombined },
+  { label: "VIVID AI", href: "/ai", icon: BrainCircuit },
+  { label: "Settings", href: "/settings", icon: Settings },
+] as const;

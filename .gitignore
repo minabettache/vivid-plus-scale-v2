@@ -1,0 +1,42 @@
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Dependencies and builds
+node_modules/
+.next/
+out/
+dist/
+
+# Supabase local files
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/.env.local
+
+# Logs and debug output
+*.log
+debug.txt
+dev-error.txt
+dev-output.txt
+
+# Database exports and temporary reviews
+current_public_schema.sql
+current_public_schema.txt
+database-foundation-review.txt
+current-vivid-files.txt
+owner-build-files.txt
+migration-part-1.txt
+migration008.txt
+vivid-event-system.txt
+vivid-review.txt
+
+# Archives and backups
+*.zip
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
