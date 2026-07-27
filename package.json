@@ -5,13 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "verify:command-center": "node scripts/verify-command-center.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.110.8",
     "@tailwindcss/postcss": "^4.3.3",
+    "@tanstack/react-query": "^5.101.4",
     "@zxing/browser": "^0.2.1",
+    "date-fns": "^4.4.0",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^0.468.0",
     "next": "16.2.10",
     "postcss": "^8.5.23",
