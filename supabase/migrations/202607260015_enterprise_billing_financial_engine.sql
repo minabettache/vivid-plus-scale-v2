@@ -72,15 +72,15 @@ exception when duplicate_object then null; end $$;
 
 insert into public.permissions (code, module, description, is_sensitive)
 values
-  ('billing.invoices.read',    'billing', 'View invoices and invoice lines.', true),
-  ('billing.invoices.manage',  'billing', 'Create, update, post, void, and collect invoices.', true),
-  ('billing.payments.read',    'billing', 'View payment methods, payment transactions, and refunds.', true),
-  ('billing.payments.manage',  'billing', 'Manage payment methods, payments, captures, voids, and refunds.', true),
-  ('billing.credits.read',     'billing', 'View billing credits and applications.', true),
-  ('billing.credits.manage',   'billing', 'Issue, apply, expire, and void billing credits.', true),
-  ('billing.tax.manage',       'billing', 'Manage business tax profiles and exemption details.', true),
-  ('billing.webhooks.read',    'billing', 'View payment-provider webhook processing records.', true),
-  ('billing.webhooks.manage',  'billing', 'Retry or resolve payment-provider webhook events.', true)
+  ('billing_invoices.read',    'billing', 'View invoices and invoice lines.', true),
+  ('billing_invoices.manage',  'billing', 'Create, update, post, void, and collect invoices.', true),
+  ('billing_payments.read',    'billing', 'View payment methods, payment transactions, and refunds.', true),
+  ('billing_payments.manage',  'billing', 'Manage payment methods, payments, captures, voids, and refunds.', true),
+  ('billing_credits.read',     'billing', 'View billing credits and applications.', true),
+  ('billing_credits.manage',   'billing', 'Issue, apply, expire, and void billing credits.', true),
+  ('billing_tax.manage',       'billing', 'Manage business tax profiles and exemption details.', true),
+  ('billing_webhooks.read',    'billing', 'View payment-provider webhook processing records.', true),
+  ('billing_webhooks.manage',  'billing', 'Retry or resolve payment-provider webhook events.', true)
 on conflict ((lower(code))) do update
 set module = excluded.module,
     description = excluded.description,
@@ -247,14 +247,14 @@ create table if not exists public.billing_invoices (
   deleted_at timestamptz,
   constraint billing_invoices_number_not_blank check (length(trim(invoice_number)) > 0),
   constraint billing_invoices_currency_format check (currency ~ '^[A-Z]{3}$'),
-  constraint billing_invoices_dates_check (due_date is null or issue_date is null or due_date >= issue_date),
-  constraint billing_invoices_period_check (service_period_end is null or service_period_start is null or service_period_end > service_period_start),
+  constraint billing_invoices_dates_check check (due_date is null or issue_date is null or due_date >= issue_date),
+  constraint billing_invoices_period_check check (service_period_end is null or service_period_start is null or service_period_end > service_period_start),
   constraint billing_invoices_money_nonnegative check (
     subtotal_cents >= 0 and discount_cents >= 0 and tax_cents >= 0
     and credit_applied_cents >= 0 and total_cents >= 0 and paid_cents >= 0
     and refunded_cents >= 0 and balance_due_cents >= 0 and amount_uncollectible_cents >= 0
   ),
-  constraint billing_invoices_paid_refund_check (refunded_cents <= paid_cents),
+  constraint billing_invoices_paid_refund_check check (refunded_cents <= paid_cents),
   constraint billing_invoices_snapshot_objects check (
     jsonb_typeof(billing_snapshot) = 'object'
     and jsonb_typeof(tax_snapshot) = 'object'
@@ -309,7 +309,7 @@ create table if not exists public.billing_invoice_items (
     unit_amount_cents >= 0 and subtotal_cents >= 0 and discount_cents >= 0
     and tax_cents >= 0 and total_cents >= 0
   ),
-  constraint billing_invoice_items_period_check (service_period_end is null or service_period_start is null or service_period_end > service_period_start),
+  constraint billing_invoice_items_period_check check (service_period_end is null or service_period_start is null or service_period_end > service_period_start),
   constraint billing_invoice_items_metadata_object check (jsonb_typeof(metadata) = 'object'),
   unique (invoice_id, line_number)
 );
@@ -344,9 +344,9 @@ create table if not exists public.billing_credits (
   deleted_at timestamptz,
   constraint billing_credits_currency_format check (currency ~ '^[A-Z]{3}$'),
   constraint billing_credits_amount_positive check (original_amount_cents > 0),
-  constraint billing_credits_remaining_check (remaining_amount_cents >= 0 and remaining_amount_cents <= original_amount_cents),
+  constraint billing_credits_remaining_check check (remaining_amount_cents >= 0 and remaining_amount_cents <= original_amount_cents),
   constraint billing_credits_description_not_blank check (length(trim(description)) > 0),
-  constraint billing_credits_expiry_check (expires_at is null or expires_at > effective_at),
+  constraint billing_credits_expiry_check check (expires_at is null or expires_at > effective_at),
   constraint billing_credits_metadata_object check (jsonb_typeof(metadata) = 'object'),
   constraint billing_credits_version_positive check (record_version >= 1)
 );
@@ -418,8 +418,8 @@ create table if not exists public.billing_payment_transactions (
   constraint billing_payment_transactions_currency_format check (currency ~ '^[A-Z]{3}$'),
   constraint billing_payment_transactions_amount_positive check (amount_cents > 0),
   constraint billing_payment_transactions_fee_nonnegative check (fee_cents >= 0),
-  constraint billing_payment_transactions_net_check (net_amount_cents = amount_cents - fee_cents),
-  constraint billing_payment_transactions_refund_check (refunded_amount_cents >= 0 and refunded_amount_cents <= amount_cents),
+  constraint billing_payment_transactions_net_check check (net_amount_cents = amount_cents - fee_cents),
+  constraint billing_payment_transactions_refund_check check (refunded_amount_cents >= 0 and refunded_amount_cents <= amount_cents),
   constraint billing_payment_transactions_response_object check (jsonb_typeof(provider_response) = 'object'),
   constraint billing_payment_transactions_metadata_object check (jsonb_typeof(metadata) = 'object'),
   constraint billing_payment_transactions_version_positive check (record_version >= 1)
@@ -579,7 +579,7 @@ begin
 
   if auth.uid() is not null
      and not (
-       public.has_permission(v_invoice.business_id, 'billing.invoices.manage', null)
+       public.has_permission(v_invoice.business_id, 'billing_invoices.manage', null)
        or public.is_business_owner(v_invoice.business_id)
      ) then
     raise exception 'Permission denied to calculate invoice totals.';
@@ -658,7 +658,7 @@ begin
 
   if auth.uid() is not null
      and not (
-       public.has_permission(v_invoice.business_id, 'billing.invoices.manage', null)
+       public.has_permission(v_invoice.business_id, 'billing_invoices.manage', null)
        or public.is_business_owner(v_invoice.business_id)
      ) then
     raise exception 'Permission denied to post invoice.';
@@ -709,7 +709,7 @@ begin
   if p_amount_cents <= 0 then raise exception 'Credit amount must be positive.'; end if;
   if auth.uid() is not null
      and not (
-       public.has_permission(p_business_id, 'billing.credits.manage', null)
+       public.has_permission(p_business_id, 'billing_credits.manage', null)
        or public.is_business_owner(p_business_id)
      ) then
     raise exception 'Permission denied to issue credit.';
@@ -761,7 +761,7 @@ begin
 
   if auth.uid() is not null
      and not (
-       public.has_permission(v_credit.business_id, 'billing.credits.manage', null)
+       public.has_permission(v_credit.business_id, 'billing_credits.manage', null)
        or public.is_business_owner(v_credit.business_id)
      ) then
     raise exception 'Permission denied to apply credit.';
@@ -826,7 +826,7 @@ begin
 
   if auth.uid() is not null
      and not (
-       public.has_permission(p_business_id, 'billing.payments.manage', null)
+       public.has_permission(p_business_id, 'billing_payments.manage', null)
        or public.is_business_owner(p_business_id)
      ) then
     raise exception 'Permission denied to record payment.';
@@ -895,7 +895,7 @@ begin
 
   if auth.uid() is not null
      and not (
-       public.has_permission(v_payment.business_id, 'billing.payments.manage', null)
+       public.has_permission(v_payment.business_id, 'billing_payments.manage', null)
        or public.is_business_owner(v_payment.business_id)
      ) then
     raise exception 'Permission denied to issue refund.';
@@ -1084,102 +1084,102 @@ for select to authenticated using (
 );
 create policy billing_tax_profiles_manage on public.billing_tax_profiles
 to authenticated using (
-  public.has_permission(business_id,'billing.tax.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_tax.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.tax.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_tax.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_payment_methods_read on public.billing_payment_methods
 for select to authenticated using (
-  public.has_permission(business_id,'billing.payments.read',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.read',null) or public.is_business_owner(business_id)
 );
 create policy billing_payment_methods_manage on public.billing_payment_methods
 to authenticated using (
-  public.has_permission(business_id,'billing.payments.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.payments.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_invoices_read on public.billing_invoices
 for select to authenticated using (
-  public.has_permission(business_id,'billing.invoices.read',null)
+  public.has_permission(business_id,'billing_invoices.read',null)
   or public.has_permission(business_id,'billing.read',null)
   or public.is_business_owner(business_id)
 );
 create policy billing_invoices_manage on public.billing_invoices
 to authenticated using (
-  public.has_permission(business_id,'billing.invoices.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_invoices.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.invoices.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_invoices.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_invoice_items_read on public.billing_invoice_items
 for select to authenticated using (
-  public.has_permission(business_id,'billing.invoices.read',null)
+  public.has_permission(business_id,'billing_invoices.read',null)
   or public.has_permission(business_id,'billing.read',null)
   or public.is_business_owner(business_id)
 );
 create policy billing_invoice_items_manage on public.billing_invoice_items
 to authenticated using (
-  public.has_permission(business_id,'billing.invoices.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_invoices.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.invoices.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_invoices.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_credits_read on public.billing_credits
 for select to authenticated using (
-  public.has_permission(business_id,'billing.credits.read',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_credits.read',null) or public.is_business_owner(business_id)
 );
 create policy billing_credits_manage on public.billing_credits
 to authenticated using (
-  public.has_permission(business_id,'billing.credits.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_credits.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.credits.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_credits.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_credit_applications_read on public.billing_credit_applications
 for select to authenticated using (
-  public.has_permission(business_id,'billing.credits.read',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_credits.read',null) or public.is_business_owner(business_id)
 );
 create policy billing_credit_applications_insert on public.billing_credit_applications
 for insert to authenticated with check (
-  public.has_permission(business_id,'billing.credits.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_credits.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_payment_transactions_read on public.billing_payment_transactions
 for select to authenticated using (
-  public.has_permission(business_id,'billing.payments.read',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.read',null) or public.is_business_owner(business_id)
 );
 create policy billing_payment_transactions_manage on public.billing_payment_transactions
 to authenticated using (
-  public.has_permission(business_id,'billing.payments.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.payments.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_refunds_read on public.billing_refunds
 for select to authenticated using (
-  public.has_permission(business_id,'billing.payments.read',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.read',null) or public.is_business_owner(business_id)
 );
 create policy billing_refunds_manage on public.billing_refunds
 to authenticated using (
-  public.has_permission(business_id,'billing.payments.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.manage',null) or public.is_business_owner(business_id)
 ) with check (
-  public.has_permission(business_id,'billing.payments.manage',null) or public.is_business_owner(business_id)
+  public.has_permission(business_id,'billing_payments.manage',null) or public.is_business_owner(business_id)
 );
 
 create policy billing_provider_webhook_events_read on public.billing_provider_webhook_events
 for select to authenticated using (
   business_id is not null
-  and (public.has_permission(business_id,'billing.webhooks.read',null) or public.is_business_owner(business_id))
+  and (public.has_permission(business_id,'billing_webhooks.read',null) or public.is_business_owner(business_id))
 );
 create policy billing_provider_webhook_events_manage on public.billing_provider_webhook_events
 to authenticated using (
   business_id is not null
-  and (public.has_permission(business_id,'billing.webhooks.manage',null) or public.is_business_owner(business_id))
+  and (public.has_permission(business_id,'billing_webhooks.manage',null) or public.is_business_owner(business_id))
 ) with check (
   business_id is not null
-  and (public.has_permission(business_id,'billing.webhooks.manage',null) or public.is_business_owner(business_id))
+  and (public.has_permission(business_id,'billing_webhooks.manage',null) or public.is_business_owner(business_id))
 );
 
 -- =========================================================

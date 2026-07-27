@@ -54,7 +54,7 @@ values
   ('billing.subscribe',    'billing', 'Start, change, pause, resume, or cancel subscriptions.', true),
   ('billing.entitlements', 'billing', 'View effective business feature entitlements.', false),
   ('billing.audit',        'billing', 'View billing lifecycle and subscription change history.', true)
-on conflict ((lower(code))) do update
+ on conflict ((lower(code))) do update
 set module = excluded.module,
     description = excluded.description,
     is_sensitive = excluded.is_sensitive;
@@ -649,6 +649,7 @@ before insert or update on public.subscriptions
 for each row execute function public.validate_subscription_scope();
 
 drop trigger if exists subscription_items_validate_scope on public.subscription_items;
+
 create trigger subscription_items_validate_scope
 before insert or update on public.subscription_items
 for each row execute function public.validate_subscription_child_scope();
@@ -865,7 +866,7 @@ values
   ('limits.users', 'Users and Employees', 'Maximum number of active employees or licensed users.', 'platform', 'integer', 'users', '{"system_feature":true}'),
   ('limits.api_requests_monthly', 'Monthly API Requests', 'Included monthly API request allowance.', 'platform', 'integer', 'requests', '{"system_feature":true}'),
   ('support.level', 'Support Level', 'Customer support service level.', 'platform', 'text', null, '{"system_feature":true}')
-on conflict ((lower(code))) do update
+on conflict ((lower(code))) where deleted_at is null do update
 set name = excluded.name,
     description = excluded.description,
     module = excluded.module,
@@ -888,7 +889,7 @@ values
   ('professional', 'Professional', 'Advanced operations, reporting, accounting, and AI for growing businesses.', true, true, false, 20, 14, 'USD', '{"system_plan":true}'),
   ('enterprise', 'Enterprise', 'Multi-location controls, advanced security, higher limits, and premium support.', true, true, false, 30, 30, 'USD', '{"system_plan":true}'),
   ('custom', 'Custom', 'Contract-defined plan with negotiated pricing and entitlements.', false, true, true, 100, 0, 'USD', '{"system_plan":true}')
-on conflict ((lower(code))) do update
+on conflict ((lower(code))) where deleted_at is null do update
 set name = excluded.name,
     description = excluded.description,
     is_public = excluded.is_public,
