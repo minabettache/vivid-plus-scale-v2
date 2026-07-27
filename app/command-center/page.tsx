@@ -28,7 +28,8 @@ import {
   WalletCards,
   X
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { CommandCenterSnapshot } from '@/lib/vivid-core/command-center/types';
 import styles from './command-center.module.css';
 
 const navigation = [
@@ -44,25 +45,18 @@ const navigation = [
   { label: 'Settings', icon: Settings }
 ];
 
-const metrics = [
-  { label: 'Net sales', value: '$18,420.00', change: '+12.4%', detail: 'vs. previous period', icon: CircleDollarSign },
-  { label: 'Transactions', value: '482', change: '+8.1%', detail: 'average ticket $38.22', icon: WalletCards },
-  { label: 'Active members', value: '1,284', change: '+34', detail: 'new this month', icon: Users },
-  { label: 'Low-stock items', value: '17', change: 'Needs action', detail: '4 critical items', icon: Package, warning: true }
-];
+const metricIcons = {
+  net_sales: CircleDollarSign,
+  transactions: WalletCards,
+  active_members: Users,
+  low_stock_items: Package
+} as const;
 
-const healthFactors = [
-  { label: 'Revenue', value: 96 },
-  { label: 'Customer loyalty', value: 91 },
-  { label: 'Operations', value: 88 },
-  { label: 'Inventory', value: 76 }
-];
-
-const priorities = [
-  { title: 'Reorder coconut charcoal', detail: 'Projected stockout in 2 days', level: 'Critical', icon: AlertTriangle },
-  { title: 'Launch Tuesday traffic campaign', detail: 'Estimated weekly upside: +$1,420', level: 'Growth', icon: Target },
-  { title: 'Review refunded transaction', detail: '#VIV-10479 · $35.00', level: 'Review', icon: ShieldCheck }
-];
+const priorityIcons = {
+  critical: AlertTriangle,
+  growth: Target,
+  review: ShieldCheck
+} as const;
 
 const transactions = [
   { id: '#VIV-10482', customer: 'Walk-in customer', time: '11:42 PM', amount: '$84.00', status: 'Paid' },
@@ -81,6 +75,39 @@ const inventory = [
 
 export default function CommandCenterPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [snapshot, setSnapshot] = useState<CommandCenterSnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadCommandCenter() {
+      try {
+        const response = await fetch('/api/v1/command-center?period=today', {
+          signal: controller.signal,
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Unable to load command center (${response.status})`);
+        }
+
+        const payload = (await response.json()) as { data: CommandCenterSnapshot };
+        setSnapshot(payload.data);
+      } catch (requestError) {
+        if ((requestError as Error).name !== 'AbortError') {
+          setError((requestError as Error).message);
+        }
+      }
+    }
+
+    loadCommandCenter();
+    return () => controller.abort();
+  }, []);
+
+  const healthScore = snapshot?.health.score ?? 0;
+  const healthStatus = snapshot?.health.status ?? 'healthy';
+  const weeklyChange = snapshot?.health.weeklyChange ?? 0;
 
   return (
     <main className={styles.shell}>
@@ -134,7 +161,11 @@ export default function CommandCenterPage() {
 
         <div className={styles.pageBody}>
           <section className={styles.hero}>
-            <div><span className={styles.eyebrow}>LIVE BUSINESS COMMAND CENTER</span><h2>Good evening, Ali.</h2><p>Your business is up 12.4% compared with the previous period.</p></div>
+            <div>
+              <span className={styles.eyebrow}>LIVE BUSINESS COMMAND CENTER</span>
+              <h2>Good evening, Ali.</h2>
+              <p>{error ? error : snapshot ? 'Live executive intelligence is connected.' : 'Loading live executive intelligence...'}</p>
+            </div>
             <button className={styles.dateButton}>Today <ChevronDown size={16} /></button>
           </section>
 
@@ -143,16 +174,22 @@ export default function CommandCenterPage() {
               <div className={styles.healthSummary}>
                 <div>
                   <span className={styles.cardEyebrow}>BUSINESS HEALTH</span>
-                  <div className={styles.healthScore}><strong>92</strong><span>/100</span></div>
-                  <p><CheckCircle2 size={15} /> Excellent · up 3 points this week</p>
+                  <div className={styles.healthScore}><strong>{snapshot ? healthScore : '--'}</strong><span>/100</span></div>
+                  <p><CheckCircle2 size={15} /> {healthStatus} · {weeklyChange >= 0 ? 'up' : 'down'} {Math.abs(weeklyChange)} points this week</p>
                 </div>
-                <div className={styles.healthRing} aria-label="Business health score 92 out of 100"><span>92%</span></div>
+                <div
+                  className={styles.healthRing}
+                  aria-label={`Business health score ${healthScore} out of 100`}
+                  style={{ background: `conic-gradient(#c89d2f 0 ${healthScore}%, #eceff2 ${healthScore}% 100%)` }}
+                >
+                  <span>{snapshot ? `${healthScore}%` : '--'}</span>
+                </div>
               </div>
               <div className={styles.healthFactors}>
-                {healthFactors.map((factor) => (
-                  <div key={factor.label} className={styles.healthFactor}>
-                    <div><span>{factor.label}</span><strong>{factor.value}</strong></div>
-                    <div className={styles.healthTrack}><i style={{ width: `${factor.value}%` }} /></div>
+                {(snapshot?.health.factors ?? []).map((factor) => (
+                  <div key={factor.key} className={styles.healthFactor}>
+                    <div><span>{factor.label}</span><strong>{factor.score}</strong></div>
+                    <div className={styles.healthTrack}><i style={{ width: `${factor.score}%` }} /></div>
                   </div>
                 ))}
               </div>
@@ -164,31 +201,42 @@ export default function CommandCenterPage() {
                 <button>View plan <ArrowUpRight size={15} /></button>
               </div>
               <div className={styles.priorityList}>
-                {priorities.map(({ title, detail, level, icon: Icon }) => (
-                  <button key={title} className={styles.priorityItem}>
-                    <div className={styles.priorityIcon}><Icon size={17} /></div>
-                    <div><strong>{title}</strong><span>{detail}</span></div>
-                    <small>{level}</small>
-                    <ArrowUpRight size={15} />
-                  </button>
-                ))}
+                {(snapshot?.priorities ?? []).map((priority) => {
+                  const Icon = priorityIcons[priority.level];
+                  return (
+                    <button key={priority.id} className={styles.priorityItem}>
+                      <div className={styles.priorityIcon}><Icon size={17} /></div>
+                      <div><strong>{priority.title}</strong><span>{priority.detail}</span></div>
+                      <small>{priority.level}</small>
+                      <ArrowUpRight size={15} />
+                    </button>
+                  );
+                })}
               </div>
             </article>
           </section>
 
           <section className={styles.metricGrid}>
-            {metrics.map(({ label, value, change, detail, icon: Icon, warning }) => (
-              <article key={label} className={styles.metricCard}>
-                <div className={styles.metricTop}><span>{label}</span><div className={warning ? styles.metricIconWarning : styles.metricIcon}><Icon size={19} /></div></div>
-                <strong>{value}</strong>
-                <div className={styles.metricBottom}><span className={warning ? styles.warningText : styles.positiveText}>{change}</span><small>{detail}</small></div>
-              </article>
-            ))}
+            {(snapshot?.metrics ?? []).map((metric) => {
+              const Icon = metricIcons[metric.key];
+              const warning = metric.requiresAction;
+              const change = metric.changePercent === undefined
+                ? (warning ? 'Needs action' : 'Live')
+                : `${metric.changePercent >= 0 ? '+' : ''}${metric.changePercent}%`;
+
+              return (
+                <article key={metric.key} className={styles.metricCard}>
+                  <div className={styles.metricTop}><span>{metric.label}</span><div className={warning ? styles.metricIconWarning : styles.metricIcon}><Icon size={19} /></div></div>
+                  <strong>{metric.formattedValue}</strong>
+                  <div className={styles.metricBottom}><span className={warning ? styles.warningText : styles.positiveText}>{change}</span><small>{metric.detail}</small></div>
+                </article>
+              );
+            })}
           </section>
 
           <section className={styles.mainGrid}>
             <article className={styles.panelLarge}>
-              <div className={styles.panelHeader}><div><span>Sales performance</span><strong>$18,420.00</strong></div><button>View report <ArrowUpRight size={15} /></button></div>
+              <div className={styles.panelHeader}><div><span>Sales performance</span><strong>{snapshot?.metrics.find((metric) => metric.key === 'net_sales')?.formattedValue ?? '--'}</strong></div><button>View report <ArrowUpRight size={15} /></button></div>
               <div className={styles.chartWrap}>
                 <div className={styles.yAxis}><span>$8k</span><span>$6k</span><span>$4k</span><span>$2k</span><span>$0</span></div>
                 <div className={styles.chartArea}>
@@ -205,10 +253,10 @@ export default function CommandCenterPage() {
 
             <article className={styles.aiPanel}>
               <div className={styles.aiBadge}><Bot size={18} /> VIVID AI</div>
-              <h3>Tonight&apos;s insight</h3>
-              <p>Premium hookah sales are outperforming classic hookahs by 26% after 9 PM.</p>
-              <div className={styles.insightStat}><TrendingUp size={18} /><div><strong>+$486 estimated upside</strong><span>by promoting premium upgrades</span></div></div>
-              <button>Ask VIVID AI <ArrowUpRight size={16} /></button>
+              <h3>{snapshot?.aiBrief.headline ?? 'Executive brief'}</h3>
+              <p>{snapshot?.aiBrief.observation ?? 'Loading your latest business insight...'}</p>
+              <div className={styles.insightStat}><TrendingUp size={18} /><div><strong>{snapshot?.aiBrief.expectedImpact ?? '--'}</strong><span>{snapshot?.aiBrief.recommendation ?? 'Preparing recommendation'}</span></div></div>
+              <button>Review recommendation <ArrowUpRight size={16} /></button>
             </article>
           </section>
 
